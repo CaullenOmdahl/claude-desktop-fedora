@@ -14,8 +14,9 @@ readonly NC='\033[0m'
 # Configuration
 readonly INSTALLER_VERSION="3.1.0"
 readonly ELECTRON_VERSION="37.0.0"
+readonly CLAUDE_VERSION="0.12.129"
 readonly BUILD_DIR="/tmp/claude-desktop-build-$$"
-readonly CLAUDE_URL="https://storage.googleapis.com/app-content-distribution/electron-builds/claude/Claude%20Setup%20${CLAUDE_VERSION:-0.12.129}.exe"
+readonly CLAUDE_URL="https://storage.googleapis.com/osprey-downloads-c02f6a0d-347c-492b-a752-3e0651722e97/nest-win-x64/Claude-Setup-x64.exe"
 
 # Logging functions
 log_info() { echo -e "${BLUE}ℹ ${NC}$1"; }
