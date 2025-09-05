@@ -12,7 +12,7 @@ readonly BLUE='\033[0;34m'
 readonly NC='\033[0m'
 
 # Configuration
-readonly INSTALLER_VERSION="3.1.0"
+readonly INSTALLER_VERSION="3.1.1"
 readonly ELECTRON_VERSION="37.0.0"
 readonly CLAUDE_VERSION="0.12.129"
 readonly BUILD_DIR="/tmp/claude-desktop-build-$$"
@@ -187,8 +187,18 @@ process_asar() {
     cd "$BUILD_DIR"
     cp extracted/lib/net45/resources/app.asar .
 
-    # Extract and modify app.asar
-    npx asar extract app.asar app-unpacked
+    # Check if there's an app.asar.unpacked directory (contains native modules)
+    if [[ -d "extracted/lib/net45/resources/app.asar.unpacked" ]]; then
+        cp -r extracted/lib/net45/resources/app.asar.unpacked .
+    fi
+
+    # Extract and modify app.asar (ignore errors about unpacked files)
+    npx asar extract app.asar app-unpacked || true
+
+    # Merge unpacked files if they exist
+    if [[ -d "app.asar.unpacked" ]]; then
+        cp -r app.asar.unpacked/* app-unpacked/ 2>/dev/null || true
+    fi
 
     # Apply window dragging fix
     if [[ -f "app-unpacked/index.html" ]]; then
