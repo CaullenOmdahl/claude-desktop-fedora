@@ -27,7 +27,7 @@ trap cleanup EXIT
 # This script builds and installs Claude Desktop from the official Windows installer
 # Note: Users build from Anthropic's official installer - no redistribution of binaries
 
-SCRIPT_VERSION="2.0.3"
+SCRIPT_VERSION="2.0.4"
 REPO_URL="https://raw.githubusercontent.com/CaullenOmdahl/claude-desktop-fedora/main"
 INSTALL_MARKER="/usr/lib64/claude-desktop/.installed_version"
 
@@ -90,31 +90,31 @@ get_installed_version() {
 }
 
 get_latest_claude_version() {
-    log_info "Checking latest Claude Desktop version..."
+    log_info "Checking latest Claude Desktop version..." >&2
 
     # Download and check the installer to get version
     TEMP_DIR=$(mktemp -d)
     cd "$TEMP_DIR"
 
-    log_info "📥 Downloading Claude installer to check version (120MB)..."
+    log_info "📥 Downloading Claude installer to check version (120MB)..." >&2
     if ! curl --progress-bar -o Claude-Setup-x64.exe "https://storage.googleapis.com/osprey-downloads-c02f6a0d-347c-492b-a752-3e0651722e97/nest-win-x64/Claude-Setup-x64.exe"; then
-        log_error "Failed to download Claude Desktop installer"
+        log_error "Failed to download Claude Desktop installer" >&2
         rm -rf "$TEMP_DIR"
         exit 1
     fi
-    log_success "Download completed"
+    log_success "Download completed" >&2
 
     # Install 7zip if needed
     if ! command -v 7z &> /dev/null; then
-        log_info "Installing p7zip for extraction..."
+        log_info "Installing p7zip for extraction..." >&2
         dnf install -y p7zip-plugins >/dev/null 2>&1
-        log_success "p7zip installed"
+        log_success "p7zip installed" >&2
     fi
 
     # Extract and get version
-    log_info "🔍 Extracting installer to detect version..."
+    log_info "🔍 Extracting installer to detect version..." >&2
     if ! 7z x -y Claude-Setup-x64.exe >/dev/null 2>&1; then
-        log_error "Failed to extract installer"
+        log_error "Failed to extract installer" >&2
         rm -rf "$TEMP_DIR"
         exit 1
     fi
@@ -122,13 +122,13 @@ get_latest_claude_version() {
     NUPKG_FILE=$(find . -name "AnthropicClaude-*-full.nupkg" | head -1)
 
     if [ -z "$NUPKG_FILE" ]; then
-        log_error "Could not determine Claude Desktop version"
+        log_error "Could not determine Claude Desktop version" >&2
         rm -rf "$TEMP_DIR"
         exit 1
     fi
 
     VERSION=$(echo "$NUPKG_FILE" | grep -oP 'AnthropicClaude-\K[0-9]+\.[0-9]+\.[0-9]+(?=-full\.nupkg)')
-    log_success "Detected Claude Desktop version: $VERSION"
+    log_success "Detected Claude Desktop version: $VERSION" >&2
 
     # Cleanup
     rm -rf "$TEMP_DIR"
