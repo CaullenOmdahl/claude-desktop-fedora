@@ -12,7 +12,7 @@ readonly BLUE='\033[0;34m'
 readonly NC='\033[0m'
 
 # Configuration
-readonly INSTALLER_VERSION="3.1.3"
+readonly INSTALLER_VERSION="3.1.5"
 readonly ELECTRON_VERSION="37.0.0"
 readonly CLAUDE_VERSION="0.12.129"
 readonly BUILD_DIR="/tmp/claude-desktop-build-$$"
@@ -318,7 +318,15 @@ extract_icons() {
 
         # Convert to PNG at different sizes
         for size in 16 32 48 64 128 256 512; do
-            convert "$ico_file" -resize ${size}x${size} -background none "claude-desktop-${size}.png" 2>/dev/null || true
+            # First try to find extracted icons with numeric suffixes
+            local icon_file=$(ls claude-desktop-${size}-*.png 2>/dev/null | head -1)
+            if [[ -n "$icon_file" ]]; then
+                # Rename to standard name
+                mv "$icon_file" "claude-desktop-${size}.png" 2>/dev/null || true
+            else
+                # Fall back to converting from ICO
+                convert "$ico_file" -resize ${size}x${size} -background none "claude-desktop-${size}.png" 2>/dev/null || true
+            fi
         done
 
         log_success "Icons extracted"
@@ -329,7 +337,6 @@ extract_icons() {
 
 # Create RPM package
 create_rpm() {
-    log_info "Building RPM package..."
 
     # Setup RPM build tree
     local rpm_root="$BUILD_DIR/rpmbuild"
@@ -369,16 +376,17 @@ if [[ -d "$BUILD_DIR/app-unpacked" ]]; then
     cp -r $BUILD_DIR/app-unpacked %{buildroot}/usr/lib64/claude-desktop/resources/
 fi
 
-# Copy icons (create at least one default icon)
-if ls $BUILD_DIR/claude-desktop-*.png 1> /dev/null 2>&1; then
-    for size in 16 32 48 64 128 256 512; do
-        if [[ -f "$BUILD_DIR/claude-desktop-\${size}.png" ]]; then
-            cp "$BUILD_DIR/claude-desktop-\${size}.png" \\
-               %{buildroot}/usr/share/icons/hicolor/\${size}x\${size}/apps/claude-desktop.png
-        fi
-    done
-else
-    # Create a default icon if none exist
+# Copy icons (handle multiple icon versions)
+for size in 16 32 48 64 128 256 512; do
+    # Look for any icon of this size
+    icon_file=\$(ls $BUILD_DIR/claude-desktop-\${size}*.png 2>/dev/null | head -1)
+    if [[ -n "\$icon_file" ]]; then
+        cp "\$icon_file" %{buildroot}/usr/share/icons/hicolor/\${size}x\${size}/apps/claude-desktop.png
+    fi
+done
+
+# Create default icon if none exist
+if ! ls %{buildroot}/usr/share/icons/hicolor/*/apps/*.png 1> /dev/null 2>&1; then
     echo "Creating default icon..."
     mkdir -p %{buildroot}/usr/share/icons/hicolor/48x48/apps/
     touch %{buildroot}/usr/share/icons/hicolor/48x48/apps/claude-desktop.png
@@ -439,10 +447,10 @@ EOF
     # Ensure resources directory exists
     mkdir -p "$BUILD_DIR/electron/resources"
 
-    # Build RPM
+    # Build RPM (suppress output except errors)
     if ! rpmbuild --define "_topdir $rpm_root" \
                   --define "_builddir $BUILD_DIR" \
-                  -bb "$rpm_root/SPECS/claude-desktop.spec" 2>&1 | grep -v "warning:"; then
+                  -bb "$rpm_root/SPECS/claude-desktop.spec" >/dev/null 2>&1; then
         log_error "Failed to build RPM package"
         return 1
     fi
@@ -453,7 +461,7 @@ EOF
         return 1
     fi
 
-    log_success "RPM package built: $(basename "$rpm_file")"
+    log_success "RPM package built: $(basename "$rpm_file")" >&2
     echo "$rpm_file"
 }
 
@@ -470,10 +478,10 @@ install_rpm() {
     fi
 
     # Install new version
-    dnf install -y "$rpm_file" || {
+    if ! dnf install -y "$rpm_file" 2>&1; then
         log_error "Failed to install RPM package"
         exit 1
-    }
+    fi
 
     log_success "Claude Desktop installed successfully!"
 }
@@ -496,12 +504,15 @@ main() {
     process_asar
     extract_icons
 
-    # Build and install
+    # Build RPM
+    log_info "Building RPM package..."
     local rpm_file=$(create_rpm)
     if [[ -z "$rpm_file" ]]; then
         log_error "Failed to create RPM package"
         exit 1
     fi
+
+    # Install RPM
     install_rpm "$rpm_file"
 
     # Success message
