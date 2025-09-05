@@ -1,28 +1,35 @@
 # Claude Desktop for Fedora Linux
 
-[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](https://github.com/CaullenOmdahl/claude-desktop-fedora/releases)
+[![Version](https://img.shields.io/badge/version-3.1.1-blue.svg)](https://github.com/CaullenOmdahl/claude-desktop-fedora/releases)
 [![License](https://img.shields.io/badge/license-MIT%2FApache-green.svg)](LICENSE)
 [![Fedora](https://img.shields.io/badge/fedora-38%2B-blue.svg)](https://getfedora.org/)
 [![Wayland](https://img.shields.io/badge/wayland-optimized-green.svg)](https://wayland.freedesktop.org/)
 
-An intelligent, modular installer system for Claude Desktop on Fedora Linux with native Wayland support and advanced performance optimizations.
+A streamlined, single-file installer for Claude Desktop on Fedora Linux with native Wayland support and advanced performance optimizations.
 
 ## ✨ Features
 
 - **🚀 One-line Installation**: Simple, automated installation process
-- **🔧 Modular Architecture**: Clean, maintainable codebase with separated concerns
+- **📄 Single-file Installer**: Everything in one self-contained script
 - **🖥️ Wayland Optimized**: Native Wayland support with automatic backend detection
 - **⚡ Performance Enhanced**: Hardware acceleration, GPU optimization, and native bindings
 - **🎯 GNOME Integration**: Deep integration with GNOME Shell and desktop environment
 - **📦 Smart Package Management**: Automatic dependency resolution and RPM packaging
 - **🔄 Update Management**: Built-in update detection and seamless upgrades
-- **🛡️ Security Focused**: Secure downloads, verification, and sandboxed builds
+- **🛡️ Security Focused**: Builds from official sources, no binary redistribution
 
 ## 🚀 Quick Start
 
-### One-Line Install
+### One-Line Install (with cache-busting)
+
 ```bash
-curl -sSL https://raw.githubusercontent.com/CaullenOmdahl/claude-desktop-fedora/main/install.sh | sudo bash
+curl -sSL "https://raw.githubusercontent.com/CaullenOmdahl/claude-desktop-fedora/main/install.sh?$(date +%s)" | sudo bash
+```
+
+### Alternative One-Line Install (using wget)
+
+```bash
+wget -qO- "https://raw.githubusercontent.com/CaullenOmdahl/claude-desktop-fedora/main/install.sh?$(date +%s)" | sudo bash
 ```
 
 ### Manual Installation
@@ -31,6 +38,21 @@ git clone https://github.com/CaullenOmdahl/claude-desktop-fedora.git
 cd claude-desktop-fedora
 chmod +x install.sh
 sudo ./install.sh
+```
+
+### Troubleshooting Cache Issues
+
+If you're getting an old version of the installer due to caching:
+
+```bash
+# Force refresh with cache-busting parameter
+curl -sSL "https://raw.githubusercontent.com/CaullenOmdahl/claude-desktop-fedora/main/install.sh?$(date +%s)" | sudo bash
+
+# Or clear curl's cache
+rm -rf ~/.cache/curl
+
+# Or use wget with no-cache
+wget --no-cache -qO- https://raw.githubusercontent.com/CaullenOmdahl/claude-desktop-fedora/main/install.sh | sudo bash
 ```
 
 ### Advanced Usage
