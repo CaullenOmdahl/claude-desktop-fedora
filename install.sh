@@ -12,7 +12,7 @@ readonly BLUE='\033[0;34m'
 readonly NC='\033[0m'
 
 # Configuration
-readonly INSTALLER_VERSION="3.1.1"
+readonly INSTALLER_VERSION="3.1.2"
 readonly ELECTRON_VERSION="37.0.0"
 readonly CLAUDE_VERSION="0.12.129"
 readonly BUILD_DIR="/tmp/claude-desktop-build-$$"
@@ -353,6 +353,7 @@ Claude Desktop application built from official sources with Linux optimizations
 %install
 mkdir -p %{buildroot}/usr/lib64/claude-desktop
 mkdir -p %{buildroot}/usr/lib64/claude-desktop/electron
+mkdir -p %{buildroot}/usr/lib64/claude-desktop/resources
 mkdir -p %{buildroot}/usr/bin
 mkdir -p %{buildroot}/usr/share/applications
 mkdir -p %{buildroot}/usr/share/icons/hicolor/{16x16,32x32,48x48,64x64,128x128,256x256,512x512}/apps
@@ -362,6 +363,11 @@ cp -r $BUILD_DIR/electron/* %{buildroot}/usr/lib64/claude-desktop/electron/
 
 # Copy app files
 cp $BUILD_DIR/app.asar %{buildroot}/usr/lib64/claude-desktop/resources/app.asar
+
+# Copy unpacked files if they exist
+if [[ -d "$BUILD_DIR/app-unpacked" ]]; then
+    cp -r $BUILD_DIR/app-unpacked %{buildroot}/usr/lib64/claude-desktop/resources/
+fi
 
 # Copy icons
 for size in 16 32 48 64 128 256 512; do
@@ -425,20 +431,20 @@ EOF
     mkdir -p "$BUILD_DIR/electron/resources"
 
     # Build RPM
-    rpmbuild --define "_topdir $rpm_root" \
-             --define "_builddir $BUILD_DIR" \
-             -bb "$rpm_root/SPECS/claude-desktop.spec" &>/dev/null || {
+    if ! rpmbuild --define "_topdir $rpm_root" \
+                  --define "_builddir $BUILD_DIR" \
+                  -bb "$rpm_root/SPECS/claude-desktop.spec" 2>&1 | grep -v "warning:"; then
         log_error "Failed to build RPM package"
-        exit 1
-    }
+        return 1
+    fi
 
     local rpm_file=$(find "$rpm_root/RPMS" -name "*.rpm" | head -1)
     if [[ -z "$rpm_file" ]]; then
         log_error "RPM package not found"
-        exit 1
+        return 1
     fi
 
-    log_success "RPM package built"
+    log_success "RPM package built: $(basename "$rpm_file")"
     echo "$rpm_file"
 }
 
@@ -483,6 +489,10 @@ main() {
 
     # Build and install
     local rpm_file=$(create_rpm)
+    if [[ -z "$rpm_file" ]]; then
+        log_error "Failed to create RPM package"
+        exit 1
+    fi
     install_rpm "$rpm_file"
 
     # Success message
