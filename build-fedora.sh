@@ -286,17 +286,36 @@ npx asar extract app.asar app.asar.contents || { echo "asar extract failed"; exi
 
 echo "Configuring window frame for Linux compatibility..."
 
-# Remove titleBarOverlay and set proper frame configuration for Linux
-sed -i 's/height:e\.height,titleBarStyle:"default",titleBarOverlay:[^,]\+,/height:e.height,titleBarStyle:"default",/g' app.asar.contents/.vite/build/index.js || echo "Warning: sed command failed to modify index.js"
+# Multiple approaches to fix window dragging issues
+echo "Applying window management fixes..."
 
-# Also try alternative pattern if the first one doesn't match
-sed -i 's/titleBarOverlay:[^,]\+,//g' app.asar.contents/.vite/build/index.js || echo "Warning: titleBarOverlay removal failed"
+# Method 1: Remove titleBarOverlay and problematic settings
+sed -i 's/titleBarStyle:"[^"]*"/titleBarStyle:"default"/g' app.asar.contents/.vite/build/index.js
+sed -i 's/titleBarOverlay:[^,}]*/titleBarOverlay:false/g' app.asar.contents/.vite/build/index.js
+sed -i 's/frame:false/frame:false/g' app.asar.contents/.vite/build/index.js
+
+# Method 2: Try broader pattern matching
+find app.asar.contents/.vite -name "*.js" -exec sed -i 's/titleBarOverlay:[^,}]*[,}]/titleBarOverlay:false,/g' {} \;
+
+# Method 3: Add explicit draggable region CSS if HTML files exist
+if [ -f app.asar.contents/.vite/renderer/main_window/index.html ]; then
+    echo "Adding draggable region CSS..."
+    sed -i 's/<head>/<head><style>.title-bar{-webkit-app-region:drag;} .title-bar *{-webkit-app-region:no-drag;}<\/style>/g' app.asar.contents/.vite/renderer/main_window/index.html
+fi
+
+echo "Window management configuration applied"
 
 # Replace native module with enhanced Fedora 42 implementation
 echo "Creating enhanced native module for Fedora 42..."
-if [ -f "$SCRIPT_DIR/claude-native-improved.js" ]; then
+if [ -f "$SCRIPT_DIR/claude-native-enhanced.js" ]; then
+    cp "$SCRIPT_DIR/claude-native-enhanced.js" app.asar.contents/node_modules/claude-native/index.js
+    echo "✓ Enhanced native bindings installed (claude-native-enhanced.js)"
+elif [ -f "$SCRIPT_DIR/claude-native-improved.js" ]; then
     cp "$SCRIPT_DIR/claude-native-improved.js" app.asar.contents/node_modules/claude-native/index.js
-    echo "✓ Enhanced native bindings installed"
+    echo "✓ Enhanced native bindings installed (claude-native-improved.js)"
+elif [ -f "/tmp/claude-native-enhanced.js" ]; then
+    cp "/tmp/claude-native-enhanced.js" app.asar.contents/node_modules/claude-native/index.js
+    echo "✓ Enhanced native bindings installed (from /tmp)"
 else
     echo "⚠ Enhanced bindings not found, using fallback stub"
     # Fallback to simple stub if enhanced version not available

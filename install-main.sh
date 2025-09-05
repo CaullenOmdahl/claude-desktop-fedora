@@ -27,7 +27,7 @@ trap cleanup EXIT
 # This script builds and installs Claude Desktop from the official Windows installer
 # Note: Users build from Anthropic's official installer - no redistribution of binaries
 
-SCRIPT_VERSION="2.0.2"
+SCRIPT_VERSION="2.0.3"
 REPO_URL="https://raw.githubusercontent.com/CaullenOmdahl/claude-desktop-fedora/main"
 INSTALL_MARKER="/usr/lib64/claude-desktop/.installed_version"
 
@@ -174,6 +174,13 @@ download_build_script() {
         log_success "Electron args builder downloaded"
     else
         log_warning "Electron args builder download failed, will use fallback"
+    fi
+
+    # Download enhanced native bindings
+    if curl -s -o /tmp/claude-native-enhanced.js "$REPO_URL/claude-native-enhanced.js?t=$TIMESTAMP"; then
+        log_success "Enhanced native bindings downloaded"
+    else
+        log_warning "Enhanced native bindings download failed, will use fallback"
     fi
 
     chmod +x /tmp/scripts/*.sh 2>/dev/null
