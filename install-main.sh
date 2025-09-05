@@ -11,7 +11,7 @@ cleanup() {
     fi
 
     # Remove Claude-related temporary files
-    sudo rm -rf /tmp/build /tmp/build-fedora.sh /tmp/VERSION /tmp/Claude-* /tmp/install_new.sh /tmp/electron* 2>/dev/null || true
+    sudo rm -rf /tmp/build /tmp/build-fedora.sh /tmp/VERSION /tmp/scripts /tmp/Claude-* /tmp/install_new.sh /tmp/electron* 2>/dev/null || true
 
     if [ $exit_code -eq 0 ]; then
         log_success "Cleanup completed"
@@ -160,7 +160,24 @@ download_build_script() {
     fi
 
     chmod +x /tmp/build-fedora.sh
-    log_success "Build script and VERSION file downloaded"
+    # Download optimization scripts
+    mkdir -p /tmp/scripts
+    log_info "Downloading performance optimization scripts..."
+
+    if curl -s -o /tmp/scripts/environment-detector.sh "$REPO_URL/scripts/environment-detector.sh?t=$TIMESTAMP"; then
+        log_success "Environment detector downloaded"
+    else
+        log_warning "Environment detector download failed, will use fallback"
+    fi
+
+    if curl -s -o /tmp/scripts/electron-args-builder.sh "$REPO_URL/scripts/electron-args-builder.sh?t=$TIMESTAMP"; then
+        log_success "Electron args builder downloaded"
+    else
+        log_warning "Electron args builder download failed, will use fallback"
+    fi
+
+    chmod +x /tmp/scripts/*.sh 2>/dev/null
+    log_success "Build script, VERSION file, and optimization scripts downloaded"
 }
 
 build_and_install() {

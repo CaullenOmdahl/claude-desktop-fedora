@@ -358,15 +358,21 @@ cp -r app.asar.unpacked "$INSTALL_DIR/lib/$PACKAGE_NAME/"
 # Copy performance optimization scripts
 echo "📦 Installing performance optimization scripts..."
 mkdir -p "$INSTALL_DIR/lib/$PACKAGE_NAME/scripts"
-if [ -f "$SCRIPT_DIR/scripts/environment-detector.sh" ]; then
-    cp "$SCRIPT_DIR/scripts/environment-detector.sh" "$INSTALL_DIR/lib/$PACKAGE_NAME/scripts/"
+if [ -f "/tmp/scripts/environment-detector.sh" ]; then
+    cp "/tmp/scripts/environment-detector.sh" "$INSTALL_DIR/lib/$PACKAGE_NAME/scripts/"
     echo "✓ Environment detector installed"
+elif [ -f "$SCRIPT_DIR/scripts/environment-detector.sh" ]; then
+    cp "$SCRIPT_DIR/scripts/environment-detector.sh" "$INSTALL_DIR/lib/$PACKAGE_NAME/scripts/"
+    echo "✓ Environment detector installed (local copy)"
 else
     echo "⚠ Environment detector not found, using fallback"
 fi
-if [ -f "$SCRIPT_DIR/scripts/electron-args-builder.sh" ]; then
-    cp "$SCRIPT_DIR/scripts/electron-args-builder.sh" "$INSTALL_DIR/lib/$PACKAGE_NAME/scripts/"
+if [ -f "/tmp/scripts/electron-args-builder.sh" ]; then
+    cp "/tmp/scripts/electron-args-builder.sh" "$INSTALL_DIR/lib/$PACKAGE_NAME/scripts/"
     echo "✓ Electron args builder installed"
+elif [ -f "$SCRIPT_DIR/scripts/electron-args-builder.sh" ]; then
+    cp "$SCRIPT_DIR/scripts/electron-args-builder.sh" "$INSTALL_DIR/lib/$PACKAGE_NAME/scripts/"
+    echo "✓ Electron args builder installed (local copy)"
 else
     echo "⚠ Electron args builder not found, using fallback"
 fi
