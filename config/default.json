@@ -1,0 +1,84 @@
+{
+  "installer": {
+    "version": "3.0.0",
+    "log_level": "INFO",
+    "max_retries": 3,
+    "retry_delay": 5
+  },
+  "system": {
+    "required_os": "linux",
+    "required_distribution": "fedora",
+    "minimum_version": "38",
+    "required_architecture": "x86_64",
+    "preferred_session": "auto",
+    "preferred_desktop": ["gnome", "kde"]
+  },
+  "claude": {
+    "download_url": "https://storage.googleapis.com/osprey-downloads-c02f6a0d-347c-492b-a752-3e0651722e97/nest/Claude-Setup.exe",
+    "version_check_url": "https://claude.ai/download",
+    "installation_path": "/usr/lib64/claude-desktop",
+    "binary_path": "/usr/bin/claude-desktop",
+    "desktop_file_path": "/usr/share/applications/claude-desktop.desktop",
+    "icon_base_path": "/usr/share/icons/hicolor",
+    "config_directory": "~/.config/Claude"
+  },
+  "optimization": {
+    "enable_hardware_acceleration": true,
+    "enable_wayland_optimizations": true,
+    "enable_gpu_acceleration": true,
+    "ozone_platform": "auto",
+    "electron_flags": [
+      "--enable-features=UseOzonePlatform,VaapiVideoDecoder,VaapiIgnoreDriverChecks,Vulkan,DefaultANGLEVulkan,VulkanFromANGLE",
+      "--disable-features=UseChromeOSDirectVideoDecoder",
+      "--enable-gpu-rasterization",
+      "--enable-zero-copy",
+      "--ignore-gpu-blacklist",
+      "--enable-native-gpu-memory-buffers",
+      "--disable-dev-shm-usage",
+      "--no-sandbox"
+    ]
+  },
+  "dependencies": {
+    "required_packages": [
+      "sqlite3",
+      "p7zip-plugins",
+      "icoutils",
+      "ImageMagick",
+      "nodejs",
+      "npm",
+      "rpm-build"
+    ],
+    "optional_packages": [
+      "libva-utils",
+      "vulkan-tools",
+      "mesa-vulkan-drivers",
+      "libva-vdpau-driver",
+      "libvdpau-va-gl"
+    ],
+    "package_manager": "auto"
+  },
+  "build": {
+    "temp_directory": "/tmp/claude-installer",
+    "keep_temp_files": false,
+    "parallel_jobs": 4,
+    "compression_level": 6
+  },
+  "integration": {
+    "create_desktop_entry": true,
+    "install_icons": true,
+    "register_mime_types": false,
+    "enable_system_tray": true,
+    "gnome_shell_extension": false
+  },
+  "security": {
+    "verify_downloads": true,
+    "use_https_only": true,
+    "sandbox_build": false
+  },
+  "logging": {
+    "log_file": "/tmp/claude-installer.log",
+    "log_format": "standard",
+    "enable_colors": true,
+    "max_log_size": "10MB"
+  }
+}

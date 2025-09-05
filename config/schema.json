@@ -1,0 +1,331 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Claude Desktop Installer Configuration",
+  "description": "Configuration schema for the Claude Desktop Fedora installer",
+  "type": "object",
+  "properties": {
+    "installer": {
+      "type": "object",
+      "description": "Core installer configuration",
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Installer version (semantic versioning)"
+        },
+        "log_level": {
+          "type": "string",
+          "enum": ["DEBUG", "INFO", "WARN", "ERROR", "FATAL"],
+          "default": "INFO",
+          "description": "Logging level for the installer"
+        },
+        "max_retries": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "default": 3,
+          "description": "Maximum number of retry attempts for failed operations"
+        },
+        "retry_delay": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60,
+          "default": 5,
+          "description": "Delay in seconds between retry attempts"
+        }
+      },
+      "required": ["version"],
+      "additionalProperties": false
+    },
+    "system": {
+      "type": "object",
+      "description": "System-specific configuration",
+      "properties": {
+        "required_os": {
+          "type": "string",
+          "enum": ["linux"],
+          "default": "linux",
+          "description": "Required operating system"
+        },
+        "required_distribution": {
+          "type": "string",
+          "enum": ["fedora"],
+          "default": "fedora",
+          "description": "Required Linux distribution"
+        },
+        "minimum_version": {
+          "type": "string",
+          "pattern": "^\\d+$",
+          "default": "38",
+          "description": "Minimum distribution version"
+        },
+        "required_architecture": {
+          "type": "string",
+          "enum": ["x86_64"],
+          "default": "x86_64",
+          "description": "Required system architecture"
+        },
+        "preferred_session": {
+          "type": "string",
+          "enum": ["wayland", "x11", "auto"],
+          "default": "auto",
+          "description": "Preferred display session type"
+        },
+        "preferred_desktop": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["gnome", "kde", "xfce", "mate", "cinnamon"]
+          },
+          "default": ["gnome"],
+          "description": "Preferred desktop environments (in order of preference)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "claude": {
+      "type": "object",
+      "description": "Claude Desktop application configuration",
+      "properties": {
+        "download_url": {
+          "type": "string",
+          "format": "uri",
+          "default": "https://storage.googleapis.com/osprey-downloads-c02f6a0d-347c-492b-a752-3e0651722e97/nest/Claude-Setup.exe",
+          "description": "URL for Claude Desktop installer download"
+        },
+        "version_check_url": {
+          "type": "string",
+          "format": "uri",
+          "default": "https://claude.ai/download",
+          "description": "URL for checking latest Claude version"
+        },
+        "installation_path": {
+          "type": "string",
+          "default": "/usr/lib64/claude-desktop",
+          "description": "Installation directory for Claude Desktop"
+        },
+        "binary_path": {
+          "type": "string",
+          "default": "/usr/bin/claude-desktop",
+          "description": "Symlink path for Claude Desktop executable"
+        },
+        "desktop_file_path": {
+          "type": "string",
+          "default": "/usr/share/applications/claude-desktop.desktop",
+          "description": "Desktop entry file path"
+        },
+        "icon_base_path": {
+          "type": "string",
+          "default": "/usr/share/icons/hicolor",
+          "description": "Base path for application icons"
+        },
+        "config_directory": {
+          "type": "string",
+          "default": "~/.config/Claude",
+          "description": "User configuration directory"
+        }
+      },
+      "additionalProperties": false
+    },
+    "optimization": {
+      "type": "object",
+      "description": "Performance optimization settings",
+      "properties": {
+        "enable_hardware_acceleration": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable hardware acceleration features"
+        },
+        "enable_wayland_optimizations": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Wayland-specific optimizations"
+        },
+        "enable_gpu_acceleration": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable GPU acceleration"
+        },
+        "ozone_platform": {
+          "type": "string",
+          "enum": ["auto", "wayland", "x11"],
+          "default": "auto",
+          "description": "Ozone platform backend for Electron"
+        },
+        "electron_flags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "--enable-features=UseOzonePlatform,VaapiVideoDecoder,VaapiIgnoreDriverChecks,Vulkan,DefaultANGLEVulkan,VulkanFromANGLE",
+            "--disable-features=UseChromeOSDirectVideoDecoder",
+            "--enable-gpu-rasterization",
+            "--enable-zero-copy",
+            "--ignore-gpu-blacklist",
+            "--enable-native-gpu-memory-buffers"
+          ],
+          "description": "Additional Electron command line flags"
+        }
+      },
+      "additionalProperties": false
+    },
+    "dependencies": {
+      "type": "object",
+      "description": "System dependencies configuration",
+      "properties": {
+        "required_packages": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "sqlite3",
+            "p7zip-plugins",
+            "icoutils",
+            "ImageMagick",
+            "nodejs",
+            "npm",
+            "rpm-build"
+          ],
+          "description": "List of required system packages"
+        },
+        "optional_packages": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "libva-utils",
+            "vulkan-tools",
+            "mesa-vulkan-drivers"
+          ],
+          "description": "List of optional packages for enhanced functionality"
+        },
+        "package_manager": {
+          "type": "string",
+          "enum": ["dnf", "yum", "auto"],
+          "default": "auto",
+          "description": "Preferred package manager"
+        }
+      },
+      "additionalProperties": false
+    },
+    "build": {
+      "type": "object",
+      "description": "Build process configuration",
+      "properties": {
+        "temp_directory": {
+          "type": "string",
+          "default": "/tmp/claude-installer",
+          "description": "Temporary directory for build operations"
+        },
+        "keep_temp_files": {
+          "type": "boolean",
+          "default": false,
+          "description": "Keep temporary files after installation"
+        },
+        "parallel_jobs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16,
+          "default": 4,
+          "description": "Number of parallel jobs for build operations"
+        },
+        "compression_level": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9,
+          "default": 6,
+          "description": "Compression level for RPM package"
+        }
+      },
+      "additionalProperties": false
+    },
+    "integration": {
+      "type": "object",
+      "description": "Desktop integration configuration",
+      "properties": {
+        "create_desktop_entry": {
+          "type": "boolean",
+          "default": true,
+          "description": "Create desktop entry file"
+        },
+        "install_icons": {
+          "type": "boolean",
+          "default": true,
+          "description": "Install application icons"
+        },
+        "register_mime_types": {
+          "type": "boolean",
+          "default": false,
+          "description": "Register MIME type associations"
+        },
+        "enable_system_tray": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable system tray integration"
+        },
+        "gnome_shell_extension": {
+          "type": "boolean",
+          "default": false,
+          "description": "Install GNOME Shell extension for enhanced integration"
+        }
+      },
+      "additionalProperties": false
+    },
+    "security": {
+      "type": "object",
+      "description": "Security and compliance settings",
+      "properties": {
+        "verify_downloads": {
+          "type": "boolean",
+          "default": true,
+          "description": "Verify downloaded files using checksums"
+        },
+        "use_https_only": {
+          "type": "boolean",
+          "default": true,
+          "description": "Only allow HTTPS downloads"
+        },
+        "sandbox_build": {
+          "type": "boolean",
+          "default": false,
+          "description": "Run build process in a sandbox"
+        }
+      },
+      "additionalProperties": false
+    },
+    "logging": {
+      "type": "object",
+      "description": "Logging configuration",
+      "properties": {
+        "log_file": {
+          "type": "string",
+          "default": "/tmp/claude-installer.log",
+          "description": "Path to log file"
+        },
+        "log_format": {
+          "type": "string",
+          "enum": ["standard", "structured", "json"],
+          "default": "standard",
+          "description": "Log output format"
+        },
+        "enable_colors": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable colored log output"
+        },
+        "max_log_size": {
+          "type": "string",
+          "pattern": "^\\d+[KMG]B?$",
+          "default": "10MB",
+          "description": "Maximum log file size before rotation"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["installer", "system", "claude"],
+  "additionalProperties": false
+}

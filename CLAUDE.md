@@ -11,50 +11,101 @@ This is an intelligent installer system for Claude Desktop on Fedora Linux. The 
 - **One-line install**: `curl -sSL https://raw.githubusercontent.com/CaullenOmdahl/claude-desktop-fedora/main/install.sh | sudo bash`
 - **Manual build**: `sudo ./build-fedora.sh`
 - **Update**: `claude-desktop-installer`
+- **Debug mode**: `CLAUDE_DEBUG=1 claude-desktop`
+- **Force backend**: `CLAUDE_FORCE_BACKEND=wayland claude-desktop`
 
 ## Architecture
 
-The intelligent build system architecture:
+The intelligent build system consists of multiple layers:
 
-1. **Smart Source Management**: Downloads and validates official Anthropic installers
-2. **Cross-Platform Adaptation**: Converts Windows-specific components to Linux equivalents
-3. **Resource Integration**: Processes and optimizes application assets for Linux desktop environments
-4. **Native Package Creation**: Generates proper RPM packages with full system integration
+### Core Build Pipeline (`build-fedora.sh`)
+
+1. **Environment Validation**: Checks Fedora compatibility and installs dependencies
+2. **Source Acquisition**: Downloads Anthropic's official Windows installer  
+3. **Resource Extraction**: Unpacks installer using 7z and processes app.asar
+4. **Cross-Platform Adaptation**: Replaces Windows native bindings with Linux equivalents
+5. **Performance Optimization**: Bundles optimization scripts and Electron runtime
+6. **Package Creation**: Builds native RPM with proper metadata and dependencies
 
 ### Key Components
 
-- `install.sh` - Intelligent installer with update detection and management
-- `build-fedora.sh` - Core build system that processes official installers
+- `install.sh` - Leap-pad installer that fetches latest version from GitHub
+- `install-main.sh` - Main installer with update detection and management  
+- `build-fedora.sh` - Core build system (557 lines) that processes official installers
 - `VERSION` - Semantic versioning for the installer system
+- `claude-native-improved.js` - Enhanced Linux compatibility layer (215 lines)
+- `scripts/environment-detector.sh` - Detects optimal backend (Wayland/X11) 
+- `scripts/electron-args-builder.sh` - Builds optimized Electron arguments
+- `scripts/claude-desktop-launcher.sh` - Runtime launcher with performance optimizations
 
 ### Cross-Platform Compatibility Layer
 
-The system includes a sophisticated compatibility layer that handles:
-- Native keyboard input mapping for Linux environments
-- Desktop integration features (system tray, notifications, window management)
-- Seamless API compatibility ensuring full application functionality
+The system includes a sophisticated multi-file compatibility layer:
+
+**Native Bindings Replacement** (`claude-native-improved.js`):
+- Enhanced keyboard mapping for Linux (46 key definitions)
+- Desktop environment detection (GNOME, KDE, XFCE, etc.)
+- System tray support detection
+- Native notification integration using `notify-send`
+- Wayland vs X11 session detection
+- Window state management and progress indication
+
+**Performance Optimization Scripts**:
+- **Environment Detection**: Automatically selects optimal backend based on desktop environment and session type
+- **GPU Acceleration**: Configures hardware acceleration for NVIDIA, AMD, and Intel GPUs
+- **Memory Management**: Dynamic heap sizing based on available system memory
+- **Platform Integration**: Optimizes for Wayland or X11 sessions
 
 ### Installation Paths
 
 - Application: `/usr/lib64/claude-desktop/`
+- Bundled Electron: `/usr/lib64/claude-desktop/electron/`
 - Launcher: `/usr/bin/claude-desktop`
 - Desktop entry: `/usr/share/applications/claude-desktop.desktop`
 - Icons: `/usr/share/icons/hicolor/*/apps/claude-desktop.png`
 - MCP config: `~/.config/Claude/claude_desktop_config.json`
+- Logs: `~/claude-desktop-launcher.log`
+- Optimization scripts: `/usr/lib64/claude-desktop/scripts/`
 
 ## System Requirements
 
 - Fedora 42+ (tested)
 - x86_64 architecture
 - Dependencies auto-installed: sqlite3, p7zip-plugins, icoutils, ImageMagick, nodejs, npm, rpm-build
+- Optional: vulkaninfo, vainfo for hardware acceleration
+- 4GB RAM minimum, 8GB recommended
+- 200MB installation space, 2GB for building
 
-## Version Management
+## Development Workflow
 
-This project uses independent semantic versioning (Major.Minor.Patch) in the `VERSION` file:
+### Testing and Debugging
 
-- **Major**: Breaking changes or significant architecture updates  
-- **Minor**: New features, updated Claude Desktop versions
-- **Patch**: Bug fixes, documentation updates
+- **Runtime logs**: Check `~/claude-desktop-launcher.log` for application issues
+- **Debug mode**: Run `CLAUDE_DEBUG=1 claude-desktop` for verbose output  
+- **Environment detection**: Scripts automatically detect optimal configuration
+- **Manual backend override**: Use `CLAUDE_FORCE_BACKEND=wayland` or `CLAUDE_FORCE_BACKEND=x11`
+- **Performance testing**: Monitor GPU usage and memory with system tools
+
+### Build Process Details
+
+The build system is complex and involves multiple stages:
+
+1. **Dependency Resolution** (`build-fedora.sh:96-142`): Checks and installs system packages
+2. **Electron Bundling** (`build-fedora.sh:144-166`): Downloads and extracts Electron v37.0.0
+3. **Source Processing** (`build-fedora.sh:194-242`): Extracts Claude Windows installer  
+4. **Asset Processing** (`build-fedora.sh:244-277`): Converts Windows icons to Linux formats
+5. **App Modification** (`build-fedora.sh:279-351`): Unpacks, modifies, and repacks app.asar
+6. **Native Binding Replacement** (`build-fedora.sh:308-336`): Installs Linux-compatible bindings
+7. **Performance Integration** (`build-fedora.sh:382-402`): Copies optimization scripts
+8. **RPM Creation** (`build-fedora.sh:484-556`): Builds final package with metadata
+
+### File Modification Patterns
+
+When modifying the build system:
+- **Window management fixes** are applied at `build-fedora.sh:287-306`  
+- **Native bindings** are replaced at multiple locations for redundancy
+- **Performance scripts** are conditionally copied with fallbacks
+- **Icon processing** uses wrestool and icotool for Windows → Linux conversion
 
 ## Version Management & Git Workflow
 
@@ -119,3 +170,47 @@ This project builds from Anthropic's official installer rather than redistributi
 - **User-initiated builds**: All builds happen on user's system
 
 The installer script handles version detection and update management automatically.
+
+## Technical Implementation Details
+
+### Cross-Platform Electron Integration
+
+The system transforms a Windows Electron app into a native Linux package:
+
+1. **App.asar Processing**: Uses `npx asar` to extract, modify, and repack application code
+2. **Native Module Replacement**: Replaces `claude-native` Windows bindings with Linux equivalents
+3. **Resource Asset Conversion**: Converts Windows icons to Linux hicolor theme format
+4. **Desktop Integration**: Creates `.desktop` files and system integration
+5. **Electron Bundling**: Packages Electron runtime to avoid dependency issues
+
+### Performance Optimization Architecture
+
+**Environment Detection System** (`scripts/environment-detector.sh`):
+- Detects session type (Wayland vs X11) via `XDG_SESSION_TYPE`
+- Identifies desktop environment from `XDG_CURRENT_DESKTOP`  
+- Determines GNOME version for compatibility decisions
+- Exports optimal `GDK_BACKEND` based on environment capabilities
+
+**Hardware Acceleration System** (`scripts/electron-args-builder.sh`):
+- GPU vendor detection via `lspci` parsing
+- VAAPI support detection for Intel/AMD hardware acceleration
+- Vulkan capability detection for enhanced graphics performance
+- Dynamic memory allocation based on system RAM (`/proc/meminfo`)
+- Platform-specific Electron argument generation
+
+### Security and Sandboxing
+
+The build maintains Electron's security model:
+- Keeps sandboxing enabled (`--enable-sandbox`)
+- Sets proper chrome-sandbox permissions (4755, root:root)
+- Uses minimal security warnings while maintaining protection
+- Preserves Electron's security boundaries while adding Linux compatibility
+
+### Compliance Architecture
+
+**No Binary Redistribution Model**:
+- Downloads official Windows installer from Anthropic's servers
+- Transforms installer locally on user's system  
+- Never redistributes Claude Desktop binaries
+- Maintains legal compliance through build-from-source approach
+- Update mechanism checks official sources directly
