@@ -200,6 +200,17 @@ process_asar() {
         cp -r app.asar.unpacked/* app-unpacked/ 2>/dev/null || true
     fi
 
+    # Copy i18n resources (they're separate from app.asar)
+    # The i18n JSON files are in lib/net45/resources/ but need to be in resources/i18n/
+    if [[ -f "extracted/lib/net45/resources/en-US.json" ]]; then
+        log_info "Copying i18n resources to app"
+        mkdir -p app-unpacked/resources/i18n
+        cp extracted/lib/net45/resources/*.json app-unpacked/resources/i18n/ 2>/dev/null || true
+        log_success "i18n resources copied"
+    else
+        log_error "Warning: i18n resources not found in extracted installer"
+    fi
+
     # Apply window dragging fix
     if [[ -f "app-unpacked/index.html" ]]; then
         sed -i 's/<body>/<body style="-webkit-app-region: no-drag;">/' app-unpacked/index.html
