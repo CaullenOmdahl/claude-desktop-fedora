@@ -357,13 +357,26 @@ main() {
         log_info "Currently installed: $INSTALLED_VERSION"
         log_info "Latest Claude Desktop: $LATEST_CLAUDE"
 
-        if [[ "$INSTALLED_VERSION" == *"$LATEST_CLAUDE"* ]]; then
+        # Extract package version from installed version (format: "2.0.2-0.12.129")
+        INSTALLED_PACKAGE_VERSION=$(echo "$INSTALLED_VERSION" | cut -d'-' -f1)
+        LATEST_PACKAGE_VERSION="$SCRIPT_VERSION"
+
+        log_info "Package versions: installed=$INSTALLED_PACKAGE_VERSION, latest=$LATEST_PACKAGE_VERSION"
+
+        # Use version comparison instead of string matching
+        if [ "$INSTALLED_PACKAGE_VERSION" = "$LATEST_PACKAGE_VERSION" ]; then
             log_success "Claude Desktop is up to date!"
             read -p "Reinstall anyway? (y/N): " -n 1 -r
             echo
             [[ ! $REPLY =~ ^[Yy]$ ]] && exit 0
         else
-            log_warning "Update available"
+            # Use sort -V to determine if update is available
+            HIGHER_VERSION=$(printf "%s\n%s\n" "$INSTALLED_PACKAGE_VERSION" "$LATEST_PACKAGE_VERSION" | sort -V | tail -n1)
+            if [ "$HIGHER_VERSION" = "$LATEST_PACKAGE_VERSION" ]; then
+                log_warning "Update available: $INSTALLED_PACKAGE_VERSION → $LATEST_PACKAGE_VERSION"
+            else
+                log_warning "Reinstalling (newer version installed than available)"
+            fi
         fi
     else
         log_info "Installing Claude Desktop $LATEST_CLAUDE"
