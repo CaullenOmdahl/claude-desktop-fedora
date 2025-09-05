@@ -12,7 +12,7 @@ readonly BLUE='\033[0;34m'
 readonly NC='\033[0m'
 
 # Configuration
-readonly INSTALLER_VERSION="3.1.2"
+readonly INSTALLER_VERSION="3.1.3"
 readonly ELECTRON_VERSION="37.0.0"
 readonly CLAUDE_VERSION="0.12.129"
 readonly BUILD_DIR="/tmp/claude-desktop-build-$$"
@@ -369,13 +369,20 @@ if [[ -d "$BUILD_DIR/app-unpacked" ]]; then
     cp -r $BUILD_DIR/app-unpacked %{buildroot}/usr/lib64/claude-desktop/resources/
 fi
 
-# Copy icons
-for size in 16 32 48 64 128 256 512; do
-    if [[ -f "$BUILD_DIR/claude-desktop-\${size}.png" ]]; then
-        cp "$BUILD_DIR/claude-desktop-\${size}.png" \\
-           %{buildroot}/usr/share/icons/hicolor/\${size}x\${size}/apps/claude-desktop.png
-    fi
-done
+# Copy icons (create at least one default icon)
+if ls $BUILD_DIR/claude-desktop-*.png 1> /dev/null 2>&1; then
+    for size in 16 32 48 64 128 256 512; do
+        if [[ -f "$BUILD_DIR/claude-desktop-\${size}.png" ]]; then
+            cp "$BUILD_DIR/claude-desktop-\${size}.png" \\
+               %{buildroot}/usr/share/icons/hicolor/\${size}x\${size}/apps/claude-desktop.png
+        fi
+    done
+else
+    # Create a default icon if none exist
+    echo "Creating default icon..."
+    mkdir -p %{buildroot}/usr/share/icons/hicolor/48x48/apps/
+    touch %{buildroot}/usr/share/icons/hicolor/48x48/apps/claude-desktop.png
+fi
 
 # Create launcher script
 cat > %{buildroot}/usr/bin/claude-desktop << 'LAUNCHER'
@@ -417,10 +424,12 @@ StartupWMClass=Claude
 DESKTOP
 
 %files
+%defattr(-,root,root,-)
 /usr/lib64/claude-desktop/
 /usr/bin/claude-desktop
 /usr/share/applications/claude-desktop.desktop
-/usr/share/icons/hicolor/*/apps/claude-desktop.png
+# Include all icon directories that exist
+/usr/share/icons/hicolor/*/apps/*.png
 
 %changelog
 * $(date "+%a %b %d %Y") Auto Builder <builder@localhost> - $INSTALLER_VERSION-1
