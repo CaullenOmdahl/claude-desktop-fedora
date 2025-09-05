@@ -284,9 +284,13 @@ cp -r "lib/net45/resources/app.asar.unpacked" electron-app/
 cd electron-app
 npx asar extract app.asar app.asar.contents || { echo "asar extract failed"; exit 1; }
 
-echo "Attempting to set frame:true and remove titleBarStyle/titleBarOverlay in index.js..."
+echo "Configuring window frame for Linux compatibility..."
 
-sed -i 's/height:e\.height,titleBarStyle:"default",titleBarOverlay:[^,]\+,/height:e.height,frame:true,/g' app.asar.contents/.vite/build/index.js || echo "Warning: sed command failed to modify index.js"
+# Remove titleBarOverlay and set proper frame configuration for Linux
+sed -i 's/height:e\.height,titleBarStyle:"default",titleBarOverlay:[^,]\+,/height:e.height,titleBarStyle:"default",/g' app.asar.contents/.vite/build/index.js || echo "Warning: sed command failed to modify index.js"
+
+# Also try alternative pattern if the first one doesn't match
+sed -i 's/titleBarOverlay:[^,]\+,//g' app.asar.contents/.vite/build/index.js || echo "Warning: titleBarOverlay removal failed"
 
 # Replace native module with enhanced Fedora 42 implementation
 echo "Creating enhanced native module for Fedora 42..."
