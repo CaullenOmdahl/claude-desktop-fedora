@@ -12,7 +12,7 @@ readonly BLUE='\033[0;34m'
 readonly NC='\033[0m'
 
 # Configuration
-readonly INSTALLER_VERSION="3.2.3"
+readonly INSTALLER_VERSION="3.2.4"
 readonly ELECTRON_VERSION="37.0.0"
 readonly CLAUDE_VERSION="0.12.129"
 readonly BUILD_DIR="/tmp/claude-desktop-build-$$"
@@ -373,11 +373,11 @@ extract_icons() {
 
             # Convert/resize the best match
             if [[ -n "$best_match" && -f "$best_match" ]]; then
-                # Preserve color by using PNG format explicitly and no background
-                convert "$best_match" -resize ${size}x${size} -strip PNG32:"claude-desktop-${size}.png" 2>/dev/null || true
+                # Preserve color with white background (flatten transparency)
+                convert "$best_match" -resize ${size}x${size} -background white -alpha remove -strip PNG24:"claude-desktop-${size}.png" 2>/dev/null || true
             else
-                # Fall back to direct ICO conversion with explicit color preservation
-                convert "$ico_file"[0] -resize ${size}x${size} -strip -type TrueColorAlpha PNG32:"claude-desktop-${size}.png" 2>/dev/null || true
+                # Fall back to direct ICO conversion with white background
+                convert "$ico_file"[0] -resize ${size}x${size} -background white -alpha remove -strip -type TrueColor PNG24:"claude-desktop-${size}.png" 2>/dev/null || true
             fi
         done
 
