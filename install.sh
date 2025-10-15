@@ -12,7 +12,7 @@ readonly BLUE='\033[0;34m'
 readonly NC='\033[0m'
 
 # Configuration
-readonly INSTALLER_VERSION="3.2.4"
+readonly INSTALLER_VERSION="3.2.5"
 readonly ELECTRON_VERSION="37.0.0"
 readonly CLAUDE_VERSION="0.12.129"
 readonly BUILD_DIR="/tmp/claude-desktop-build-$$"
@@ -329,64 +329,80 @@ extract_icons() {
     log_info "Extracting icons..."
 
     cd "$BUILD_DIR"
-    if [[ -f "extracted/lib/net45/claude-desktop.ico" ]]; then
-        local ico_file="extracted/lib/net45/claude-desktop.ico"
+
+    # Find the ICO file - prefer Tray-Win32.ico (the app icon)
+    local ico_file=""
+    if [[ -f "extracted/lib/net45/resources/Tray-Win32.ico" ]]; then
+        ico_file="extracted/lib/net45/resources/Tray-Win32.ico"
+    elif [[ -f "extracted/lib/net45/claude-desktop.ico" ]]; then
+        ico_file="extracted/lib/net45/claude-desktop.ico"
     else
-        local ico_file=$(find . -name "*.ico" | head -1)
+        ico_file=$(find extracted -name "*.ico" | grep -v Dark | head -1)
     fi
 
-    if [[ -n "$ico_file" ]]; then
-        # Use icotool instead of wrestool for better color preservation
-        # Extract all embedded images from the ICO file
+    if [[ -n "$ico_file" && -f "$ico_file" ]]; then
+        log_info "Extracting icons from $(basename "$ico_file")"
+
+        # Extract all icons using icotool
+        # This preserves colors perfectly - no need for ImageMagick conversion!
         icotool -x "$ico_file" -o . 2>/dev/null || true
 
-        # Convert to PNG at different sizes with proper color handling
-        for size in 16 32 48 64 128 256 512; do
-            # Try to find an extracted icon close to this size
-            local best_match=""
-            local best_diff=999999
+        # Map extracted icons to standard sizes
+        # icotool creates files like: basename_N_WIDTHxHEIGHTxDEPTH.png
+        local base_name=$(basename "$ico_file" .ico)
 
-            # Look for extracted icons
-            for extracted in claude-desktop_*_${size}x${size}*.png; do
+        for size in 16 32 48 64 128 256 512; do
+            # Try to find exact size with 32-bit depth (best quality)
+            local found=0
+            for extracted in ${base_name}_*_${size}x${size}x32.png; do
                 if [[ -f "$extracted" ]]; then
-                    best_match="$extracted"
-                    best_diff=0
+                    cp "$extracted" "claude-desktop-${size}.png"
+                    found=1
                     break
                 fi
             done
 
-            # If no exact match, find closest size
-            if [[ -z "$best_match" ]]; then
-                for extracted in claude-desktop_*_*x*.png; do
+            # If no exact match, try any depth at this size
+            if [[ $found -eq 0 ]]; then
+                for extracted in ${base_name}_*_${size}x${size}*.png; do
                     if [[ -f "$extracted" ]]; then
-                        # Extract dimensions from filename (e.g., claude-desktop_1_256x256x32.png)
-                        local dims=$(echo "$extracted" | grep -oP '\d+x\d+' | head -1)
-                        local w=$(echo "$dims" | cut -d'x' -f1)
-                        local diff=$((size > w ? size - w : w - size))
-                        if [[ $diff -lt $best_diff ]]; then
-                            best_diff=$diff
-                            best_match="$extracted"
-                        fi
+                        cp "$extracted" "claude-desktop-${size}.png"
+                        found=1
+                        break
                     fi
                 done
             fi
 
-            # Convert/resize the best match
-            if [[ -n "$best_match" && -f "$best_match" ]]; then
-                # Preserve color with white background (flatten transparency)
-                convert "$best_match" -resize ${size}x${size} -background white -alpha remove -strip PNG24:"claude-desktop-${size}.png" 2>/dev/null || true
-            else
-                # Fall back to direct ICO conversion with white background
-                convert "$ico_file"[0] -resize ${size}x${size} -background white -alpha remove -strip -type TrueColor PNG24:"claude-desktop-${size}.png" 2>/dev/null || true
+            # If still no match, scale from nearest available size using ImageMagick
+            if [[ $found -eq 0 ]]; then
+                # Find closest 32-bit icon
+                local closest=""
+                local closest_size=999999
+                for extracted in ${base_name}_*_*x*x32.png; do
+                    if [[ -f "$extracted" ]]; then
+                        local dims=$(echo "$extracted" | grep -oP '\d+x\d+' | head -1)
+                        local icon_size=$(echo "$dims" | cut -d'x' -f1)
+                        local diff=$((size > icon_size ? size - icon_size : icon_size - size))
+                        if [[ $diff -lt $closest_size ]]; then
+                            closest="$extracted"
+                            closest_size=$diff
+                        fi
+                    fi
+                done
+
+                if [[ -n "$closest" ]]; then
+                    # Resize without modifying colors - icons already have proper colors
+                    convert "$closest" -resize ${size}x${size} "claude-desktop-${size}.png" 2>/dev/null || true
+                fi
             fi
         done
 
-        # Clean up extracted intermediate files
-        rm -f claude-desktop_*.png 2>/dev/null || true
+        # Clean up temporary extracted files
+        rm -f ${base_name}_*.png 2>/dev/null || true
 
-        log_success "Icons extracted with color preservation"
+        log_success "Icons extracted (original colors preserved)"
     else
-        log_warn "No icon file found, using default"
+        log_warn "No icon file found"
     fi
 }
 
