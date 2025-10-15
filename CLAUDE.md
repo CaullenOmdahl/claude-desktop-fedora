@@ -29,14 +29,12 @@ The intelligent build system consists of multiple layers:
 
 ### Key Components
 
-- `install.sh` - Leap-pad installer that fetches latest version from GitHub
-- `install-main.sh` - Main installer with update detection and management  
-- `build-fedora.sh` - Core build system (557 lines) that processes official installers
-- `VERSION` - Semantic versioning for the installer system
-- `claude-native-improved.js` - Enhanced Linux compatibility layer (215 lines)
-- `scripts/environment-detector.sh` - Detects optimal backend (Wayland/X11) 
-- `scripts/electron-args-builder.sh` - Builds optimized Electron arguments
-- `scripts/claude-desktop-launcher.sh` - Runtime launcher with performance optimizations
+- `install.sh` - Unified single-file installer with complete build pipeline
+- `VERSION` - Semantic versioning for the installer system (current: 3.2.3)
+- Native bindings replacement - Linux compatibility layer with keyboard mapping, notifications, system detection
+- Icon extraction system - Uses `icotool` and ImageMagick for color-preserving icon conversion
+- Window dragging fix - CSS injection for frameless window dragging support
+- i18n resource handling - Proper locale file extraction and installation
 
 ### Cross-Platform Compatibility Layer
 
@@ -101,11 +99,19 @@ The build system is complex and involves multiple stages:
 
 ### File Modification Patterns
 
-When modifying the build system:
-- **Window management fixes** are applied at `build-fedora.sh:287-306`  
-- **Native bindings** are replaced at multiple locations for redundancy
-- **Performance scripts** are conditionally copied with fallbacks
-- **Icon processing** uses wrestool and icotool for Windows → Linux conversion
+When modifying the build system (`install.sh`):
+- **Window dragging fix** is applied at lines 214-228 (modifies `.vite/renderer/main_window/index.html`)
+- **Native bindings** replacement at lines 230-318 (creates `claude-native.js`)
+- **Icon processing** at lines 326-389 (uses `icotool` + ImageMagick with PNG32 format for color preservation)
+- **i18n resources** copied at lines 205-212 (handles separate locale JSON files)
+
+### Known Issues and Solutions
+
+**v3.2.3 Improvements**:
+1. **Window Dragging**: Fixed by adding CSS to make top 50px draggable via `body::before` pseudo-element
+2. **Icon Colors**: Fixed by using `icotool` instead of `wrestool` and forcing PNG32 format with `-type TrueColorAlpha`
+3. **Click Interaction**: All interactive elements have `pointer-events: auto` and `z-index: 9999999` to remain clickable
+4. **Dynamic Content**: CSS respects Claude's `.nc-drag` and `.nc-no-drag` classes for runtime-loaded content
 
 ## Version Management & Git Workflow
 

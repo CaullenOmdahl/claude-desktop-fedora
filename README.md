@@ -1,6 +1,6 @@
 # Claude Desktop for Fedora Linux
 
-[![Version](https://img.shields.io/badge/version-3.1.1-blue.svg)](https://github.com/CaullenOmdahl/claude-desktop-fedora/releases)
+[![Version](https://img.shields.io/badge/version-3.2.3-blue.svg)](https://github.com/CaullenOmdahl/claude-desktop-fedora/releases)
 [![License](https://img.shields.io/badge/license-MIT%2FApache-green.svg)](LICENSE)
 [![Fedora](https://img.shields.io/badge/fedora-38%2B-blue.svg)](https://getfedora.org/)
 [![Wayland](https://img.shields.io/badge/wayland-optimized-green.svg)](https://wayland.freedesktop.org/)
@@ -173,9 +173,10 @@ claude-desktop-installer --check-updates
 ### Common Issues
 
 **Window not movable/draggable**
-- Ensure you're running the latest version (3.0.0+)
-- Check that Wayland optimizations are enabled
-- Try forcing X11 mode: `export GDK_BACKEND=x11`
+- Ensure you're running the latest version (3.2.3+)
+- Window can be dragged from the top ~50px area
+- All interactive elements remain fully clickable
+- Works with both Wayland and X11
 
 **Performance Issues**
 - Verify hardware acceleration: `vainfo` and `vulkaninfo`

@@ -12,7 +12,7 @@ readonly BLUE='\033[0;34m'
 readonly NC='\033[0m'
 
 # Configuration
-readonly INSTALLER_VERSION="3.1.5"
+readonly INSTALLER_VERSION="3.2.3"
 readonly ELECTRON_VERSION="37.0.0"
 readonly CLAUDE_VERSION="0.12.129"
 readonly BUILD_DIR="/tmp/claude-desktop-build-$$"
@@ -211,9 +211,21 @@ process_asar() {
         log_error "Warning: i18n resources not found in extracted installer"
     fi
 
-    # Apply window dragging fix
-    if [[ -f "app-unpacked/index.html" ]]; then
-        sed -i 's/<body>/<body style="-webkit-app-region: no-drag;">/' app-unpacked/index.html
+    # Apply window dragging fix to main window HTML
+    # Claude Desktop uses Vite structure: .vite/renderer/main_window/index.html
+    local main_html="app-unpacked/.vite/renderer/main_window/index.html"
+
+    if [[ -f "$main_html" ]]; then
+        log_info "Applying window dragging fix to $main_html"
+
+        # Add CSS for window dragging
+        # Claude Desktop loads content dynamically and uses .nc-drag/.nc-no-drag classes
+        # We need to make the top area draggable by default and let the app control specifics
+        sed -i '/<head>/a\    <style id="linux-window-drag">\n      /* Make top ~50px of window draggable as a fallback */\n      body::before {\n        content: "";\n        position: fixed;\n        top: 0;\n        left: 0;\n        right: 0;\n        height: 50px;\n        -webkit-app-region: drag;\n        pointer-events: none;\n        z-index: 999999;\n      }\n      \n      /* Respect apps native drag/no-drag classes */\n      .nc-drag {\n        -webkit-app-region: drag !important;\n      }\n      \n      .nc-no-drag {\n        -webkit-app-region: no-drag !important;\n        pointer-events: auto !important;\n      }\n      \n      /* Make all interactive elements no-drag with higher z-index */\n      button, input, textarea, select, a, [role="button"],\n      [contenteditable="true"], [tabindex]:not([tabindex="-1"]) {\n        -webkit-app-region: no-drag !important;\n        position: relative;\n        z-index: 9999999;\n        pointer-events: auto !important;\n      }\n    </style>' "$main_html"
+
+        log_success "Window dragging CSS applied"
+    else
+        log_warn "Main window HTML not found at $main_html"
     fi
 
     # Create native bindings replacement
@@ -324,23 +336,55 @@ extract_icons() {
     fi
 
     if [[ -n "$ico_file" ]]; then
-        # Extract all sizes from ICO
-        wrestool -x -t14 "$ico_file" -o . 2>/dev/null || true
+        # Use icotool instead of wrestool for better color preservation
+        # Extract all embedded images from the ICO file
+        icotool -x "$ico_file" -o . 2>/dev/null || true
 
-        # Convert to PNG at different sizes
+        # Convert to PNG at different sizes with proper color handling
         for size in 16 32 48 64 128 256 512; do
-            # First try to find extracted icons with numeric suffixes
-            local icon_file=$(ls claude-desktop-${size}-*.png 2>/dev/null | head -1)
-            if [[ -n "$icon_file" ]]; then
-                # Rename to standard name
-                mv "$icon_file" "claude-desktop-${size}.png" 2>/dev/null || true
+            # Try to find an extracted icon close to this size
+            local best_match=""
+            local best_diff=999999
+
+            # Look for extracted icons
+            for extracted in claude-desktop_*_${size}x${size}*.png; do
+                if [[ -f "$extracted" ]]; then
+                    best_match="$extracted"
+                    best_diff=0
+                    break
+                fi
+            done
+
+            # If no exact match, find closest size
+            if [[ -z "$best_match" ]]; then
+                for extracted in claude-desktop_*_*x*.png; do
+                    if [[ -f "$extracted" ]]; then
+                        # Extract dimensions from filename (e.g., claude-desktop_1_256x256x32.png)
+                        local dims=$(echo "$extracted" | grep -oP '\d+x\d+' | head -1)
+                        local w=$(echo "$dims" | cut -d'x' -f1)
+                        local diff=$((size > w ? size - w : w - size))
+                        if [[ $diff -lt $best_diff ]]; then
+                            best_diff=$diff
+                            best_match="$extracted"
+                        fi
+                    fi
+                done
+            fi
+
+            # Convert/resize the best match
+            if [[ -n "$best_match" && -f "$best_match" ]]; then
+                # Preserve color by using PNG format explicitly and no background
+                convert "$best_match" -resize ${size}x${size} -strip PNG32:"claude-desktop-${size}.png" 2>/dev/null || true
             else
-                # Fall back to converting from ICO
-                convert "$ico_file" -resize ${size}x${size} -background none "claude-desktop-${size}.png" 2>/dev/null || true
+                # Fall back to direct ICO conversion with explicit color preservation
+                convert "$ico_file"[0] -resize ${size}x${size} -strip -type TrueColorAlpha PNG32:"claude-desktop-${size}.png" 2>/dev/null || true
             fi
         done
 
-        log_success "Icons extracted"
+        # Clean up extracted intermediate files
+        rm -f claude-desktop_*.png 2>/dev/null || true
+
+        log_success "Icons extracted with color preservation"
     else
         log_warn "No icon file found, using default"
     fi
