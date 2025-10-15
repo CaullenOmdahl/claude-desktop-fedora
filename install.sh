@@ -12,7 +12,7 @@ readonly BLUE='\033[0;34m'
 readonly NC='\033[0m'
 
 # Configuration
-readonly INSTALLER_VERSION="3.2.5"
+readonly INSTALLER_VERSION="3.2.6"
 readonly ELECTRON_VERSION="37.0.0"
 readonly CLAUDE_VERSION="0.12.129"
 readonly BUILD_DIR="/tmp/claude-desktop-build-$$"
@@ -330,14 +330,31 @@ extract_icons() {
 
     cd "$BUILD_DIR"
 
-    # Find the ICO file - prefer Tray-Win32.ico (the app icon)
-    local ico_file=""
-    if [[ -f "extracted/lib/net45/resources/Tray-Win32.ico" ]]; then
-        ico_file="extracted/lib/net45/resources/Tray-Win32.ico"
-    elif [[ -f "extracted/lib/net45/claude-desktop.ico" ]]; then
-        ico_file="extracted/lib/net45/claude-desktop.ico"
-    else
-        ico_file=$(find extracted -name "*.ico" | grep -v Dark | head -1)
+    # Extract colored icon from the Setup.exe (contains full-color app icon)
+    # The Tray icons are intentionally monochrome for system trays
+    local setup_exe="Claude-Setup.exe"
+    if [[ -f "$setup_exe" ]]; then
+        log_info "Extracting colored icon from Setup.exe"
+
+        # Extract the setup icon resource (type 3, largest colored icon)
+        wrestool -x -t3 -n6 "$setup_exe" -o setupIcon.ico 2>/dev/null || true
+
+        if [[ -f "setupIcon.ico" ]]; then
+            local ico_file="setupIcon.ico"
+            log_info "Using colored Setup icon"
+        fi
+    fi
+
+    # Fallback to Tray icon if setup icon extraction failed
+    if [[ -z "$ico_file" || ! -f "$ico_file" ]]; then
+        log_warn "Setup icon not found, falling back to Tray icon"
+        if [[ -f "extracted/lib/net45/resources/Tray-Win32.ico" ]]; then
+            ico_file="extracted/lib/net45/resources/Tray-Win32.ico"
+        elif [[ -f "extracted/lib/net45/claude-desktop.ico" ]]; then
+            ico_file="extracted/lib/net45/claude-desktop.ico"
+        else
+            ico_file=$(find extracted -name "*.ico" | grep -v Dark | head -1)
+        fi
     fi
 
     if [[ -n "$ico_file" && -f "$ico_file" ]]; then
